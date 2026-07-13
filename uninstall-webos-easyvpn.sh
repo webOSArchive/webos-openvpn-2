@@ -45,9 +45,15 @@ done
 ipsec stop 2>/dev/null || true
 
 export DEBIAN_FRONTEND=noninteractive
-# Purge only strongSwan bits. Deliberately NOT touching iptables /
-# iptables-persistent / netfilter-persistent (PiVPN relies on them).
-apt-get purge -y strongswan libcharon-extra-plugins 2>/dev/null || true
+# Purge ALL strongSwan/charon packages -- the `strongswan` metapackage alone
+# doesn't cascade to `strongswan-starter` (which provides /usr/sbin/ipsec) on
+# every Debian release, so match the whole family by name. Deliberately NOT
+# touching iptables / iptables-persistent / netfilter-persistent (PiVPN needs them).
+ss_pkgs="$(dpkg-query -W -f='${Package}\n' 'strongswan*' 'libstrongswan*' 'libcharon*' 2>/dev/null | tr '\n' ' ')"
+if [[ -n "${ss_pkgs// }" ]]; then
+    echo "    purging: ${ss_pkgs}"
+    apt-get purge -y ${ss_pkgs} 2>/dev/null || true
+fi
 apt-get autoremove --purge -y 2>/dev/null || true
 
 # --- 2. Remove config files the installer wrote -----------------------------

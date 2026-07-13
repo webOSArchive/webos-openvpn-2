@@ -147,20 +147,30 @@ void cleanupVpnAgent(void);
 | 0x38   | `notify_system_change`   |
 |  —     | **sizeof == 0x3c (60)**  |
 
-**Op signature** (confirmed at the daemon call sites `handleConnectRequest` /
-`handleDelayedConnectRequest`):
+**Op signatures are NOT uniform** — each was read at its own daemon call site.
+Only connect and handle_ui take a params json; the others put the callback in
+arg1 with no params:
 
 ```c
-void op(void *token, const char *params_json, vpn_response_cb cb);
+void connect               (void *token, const char *params_json, cb); /* cb arg2 */
+void handle_ui_prompt_resp (void *token, const char *params_json, cb); /* cb arg2 */
+void disconnect            (void *token, cb);                          /* cb arg1! */
+void get_connection_details(void *token, cb);                          /* cb arg1! */
+void notify_system_change  (void *token);                              /* no reply */
 ```
 
-- `params_json` is a **raw JSON string** (the daemon `g_strdup`s the LSMessage
-  payload) — the agent must `json_tokener_parse` it. *Treating it as a
-  json_object* segfaults the daemon* (the second debug cycle we hit).
-- Reply once via `cb(token, 0, code, errText)` — `code 0` = success
-  (`returnValue:true`), negative = failure; **`-6` is silent in the app** (used
-  after launching the credentials/profile form). Connect carries no payload;
-  state is pushed asynchronously via `host1`.
+- **Reading the callback from the wrong arg SIGSEGVs the daemon.** The daemon
+  leaves the unused arg registers as garbage; `disconnect` read cb from a 3rd
+  param and called it → jump to junk (`0x0000000a`) in
+  `handleLunaDisconnectRequest`. It had already killed openvpn, so the tunnel
+  dropped but the app got "Message status unknown" (the daemon died before
+  replying). Define each op with its real signature and cast into the slot.
+- `params_json` (connect/handle_ui) is a **raw JSON string** — `json_tokener_parse`
+  it. *Treating it as a json_object* also segfaults the daemon.*
+- Reply once via `cb(token, 0, code, errText)` — `code 0` = success, negative =
+  failure. **`-7` is silent in EVERY app scene** (use after launching the
+  profile/creds form); `-6` is silent only in the modal creds prompt. Connect
+  carries no payload; state is pushed asynchronously via `host1`.
 
 **Threading:** `host0`/`host1` touch the default `GMainContext` and are **not**
 safe from a background thread. The agent therefore watches the openvpn child +

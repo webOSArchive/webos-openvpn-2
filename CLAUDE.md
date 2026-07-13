@@ -5,9 +5,19 @@ self-hostable VPN server (on the user's Raspberry Pi) that the device's built-in
 app can connect to. Deliverables are a setup script + a community how-to guide the user
 will host on GitHub for the webOS Archive community.
 
-## Status: tunnel WORKS end-to-end; now researching a modern replacement client
-The strongSwan + vpnc EasyVPN tunnel is **confirmed working** on the user's Pi (user
-reported success at the top of this session). Two follow-on threads are now active:
+## Status: ✅ RELEASED — the OpenVPN agent is done, shipping, and validated on real hardware
+The custom **OpenVPN VPN-agent** is complete: it connects an HP TouchPad through the
+stock Settings → VPN UI to a real PiVPN server with TLS 1.3 / AES-256-GCM; traffic AND
+DNS go through the tunnel and DNS is restored on disconnect. Packaged as a distributable
+`.ipk` (info app "OpenVPN 2" + agent + postinst/prerm) and shipped to the community.
+- Repo: **github.com/webOSArchive/webos-openvpn-2** (moved from codepoet80/webos-openvpn).
+- **Read `RESUME.md` (repo root) first** — full status, exact ABI, build/install, next work.
+- The older strongSwan/EasyVPN path is deprecated: `setup-webos-easyvpn-deprecated.sh`
+  installs it, `uninstall-webos-easyvpn.sh` removes it (PiVPN-safe).
+
+### (historical) EasyVPN status
+The strongSwan + vpnc EasyVPN tunnel was confirmed working earlier. Two follow-on threads
+were active before the OpenVPN client superseded this path:
 1. **Risk hardening of the existing path** (see "Encryption / risk profile" below).
    The user has **already IP-allowlisted** the Pi's 500/4500 to two known networks
    (their house + parents' house).
@@ -176,9 +186,15 @@ across repeated cycles.
 
 **Key ABI facts (all confirmed, see `agent-openvpn/src/webos_vpn_agent_abi.h`):**
 - `initVpnAgent` **returns int 0** (nonzero ⇒ daemon dlcloses the plugin).
-- op signature `op(void *token, const char *params_json_STRING, cb)` — the agent
-  must `json_tokener_parse` arg1; treating it as an object segfaults the daemon.
-- reply `cb(token, 0, code, errText)`: 0=success, **-6=silent** (prompt launched).
+- **op signatures are NOT uniform** (each verified at its daemon call site):
+  `connect`(0x28) & `handle_ui_prompt_resp`(0x34) = `(token, params_json, cb)` — cb=arg2;
+  `disconnect`(0x2c) & `get_connection_details`(0x30) = `(token, cb)` — **cb=arg1, no
+  params**; `notify_system_change`(0x38) = `(token)`, no reply. Reading cb from the
+  wrong arg calls garbage and **SIGSEGVs the daemon** (this is what crashed disconnect —
+  the tunnel dropped but the app got "Message status unknown"). For the params ops,
+  arg1 is a JSON **string** — `json_tokener_parse` it; treating it as an object segfaults.
+- reply `cb(token, 0, code, errText)`: 0=success; **-7 = silent in ALL app scenes**
+  (use after launching the profile/creds form; -6 is silent only in the modal prompt).
 - host table @ daemon `.data 0x21988`: host0=`SendMsgToApp(char* json)` (prompt),
   host1=`Notify(char* json)` (status), host2=`addNetworkInterface`, … host11=
   `profileGetPrvDetails`. host0/host1 are **main-thread-only** ⇒ agent uses GLib
@@ -191,9 +207,11 @@ across repeated cycles.
   to dispatch, the profile must be saved (`addProfile`) so the daemon tracks it
   active — both are automatic in the real UI flow.
 
-**Remaining polish** (see `agent-openvpn/BUILD.md` §8): DNS/route hand-off to the
-connection manager (call host2/host6 from `openvpn-up`); optional `.ipk`
-packaging; roaming. Pi side documented in repo-root **`PIVPN-GUIDE.md`**.
+**Done since:** DNS hand-off (openvpn-up repoints webOS dnsmasq at the pushed VPN DNS,
+restores on disconnect — traffic + DNS both tunneled, leak-free); `.ipk` packaging;
+per-op ABI + disconnect-crash fix. **Remaining polish:** deeper `addNetworkInterface`
+DNS/route integration (current resolv.conf-rewrite works); roaming. Pi side + full
+walkthrough in repo-root **`PIVPN-GUIDE.md`**.
 
 ## (historical) M1 SCAFFOLD — in `agent-openvpn/` (see `agent-openvpn/BUILD.md`)
 Files: `vpn-plugin-info.json` (id `org.webosarchive.openvpn`, type `ssl`, plugin
@@ -209,17 +227,21 @@ Host-side clang shows
 sysroot); ABI asserts inert on 64-bit host. Everything documented for cloning to the Linux
 box with the GCC toolchain.
 
-## NEXT SESSION — pick up the agent-plugin build
-Existing tunnel is done & working; IP-allowlist mitigation applied. Open work:
-1. **Build M1 on the Linux box:** user has the ARM cross toolchain there. `cd agent-openvpn
-   && make CROSS_COMPILE=… SYSROOT=…`. Need a sysroot with libcjson/glib headers+libs — use
-   `scripts/get-palm-libcjson.sh` (device on novacom) to populate libcjson into the sysroot.
-2. **Test M1 on device** (novacom): M1a manifest → "OpenVPN" appears in Add-Profile list;
-   M1b `.so` loads → fields render (watch the log); M1c Connect → `op_connect: dispatched`.
-3. **M2:** cross-compile OpenVPN vs OpenSSL 1.1.1w (`/usr/lib/ssl11`); flesh out the ops
-   (search `TODO(M2)`); reverse the `h0..h2` host callbacks to answer `vpnd`.
-4. Optional hardening of the shipped path: replace crackable script defaults with a
-   `openssl rand`-generated group PSK + strong XAUTH (README risk section now documents why).
+## Build/deploy/test workflow (the plugin is built & released; this is how to iterate)
+- **Build agent:** `cd agent-openvpn && make` (Linaro `arm-linux-gnueabi`; in-tree
+  `sysroot/` has device libcjson/libglib + shim headers `json.h`/`glib_shim.h`).
+- **Deploy for dev:** `novacom put file:///usr/lib/vpn/agents/openvpn/libVpnOpenvpnAgent.so
+  < libVpnOpenvpnAgent.so`; then `killall PmVpnDaemon` so it re-dlopens the new `.so`.
+- **Build the `.ipk`:** `cd packaging && ./build-ipk.sh` → `packaging/dist/` (syncs the
+  agent payload from `agent-openvpn/`, injects postinst/prerm). Install via **Preware /
+  WebOS Quick Install** (NOT palm-install — postinst needs root).
+- **Dev gotchas:** after `killall PmVpnDaemon`, the daemon persists connection state, so
+  the first `connect` to a profile it still thinks is connected NO-OPS — `disconnect`
+  first. `PmVpnDaemon` is on-demand: a dead `ps` grep is a normal idle-exit, not a crash
+  (check `/var/log/messages` for `SIGSEGV`/`minicore`, and crash minicores under
+  `/var/log/reports/librdx/*PmVpnDaemon*minicore*.gz` for a backtrace).
+- **Info app:** a bare HTML webOS app must call `PalmSystem.stageReady()` on load or the
+  card pulses forever on the splash (frameworks do this; a plain page must too).
 
 ## webos-mcp knowledge
 The `webos-mcp` server exposes `webos://knowledge/<topic>` resources (and a full bundle at

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>OpenVPN</title>
+  <style>
+    * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+    /* No height:100% here -- that clips the page and kills scrolling on webOS. */
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: Prelude, Helvetica, Arial, sans-serif;
+      background: #1b1f24; color: #e6e9ee;
+      overflow-y: auto; -webkit-overflow-scrolling: touch;
+    }
+    .wrap { max-width: 680px; margin: 0 auto; padding: 22px 20px 40px; }
+    .head { text-align: center; padding: 4px 0 2px; }
+    .head img { width: 88px; height: 88px; }
+    h1 { font-size: 24px; font-weight: 300; margin: 8px 0 2px; }
+    .sub { color: #9aa4b2; font-size: 14px; margin: 0; }
+    .lead {
+      background: #202a3a; border: 1px solid #2f3e57; border-radius: 9px;
+      padding: 12px 15px; margin: 16px 0; line-height: 1.45; font-size: 14px; color: #d6def0;
+    }
+    .lead b { color: #8fc0ff; }
+    .card { background: #262b32; border-radius: 9px; padding: 13px 16px; margin: 0 0 13px; }
+    .card h2 { font-size: 13px; font-weight: 600; margin: 0 0 8px; color: #f5a623; letter-spacing: .4px; }
+    ol { margin: 0; padding-left: 19px; }
+    li { margin: 5px 0; line-height: 1.4; font-size: 14px; }
+    code, .path { background: #11151a; color: #7fd1b9; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+    .k { color: #f5a623; font-weight: 600; }
+    .foot { text-align: center; color: #6c7686; font-size: 12px; margin-top: 14px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="head">
+      <img src="splashicon.png" alt="OpenVPN">
+      <h1>OpenVPN for webOS</h1>
+      <p class="sub">TLS&nbsp;1.3 / AES&#8209;256&#8209;GCM &middot; roaming&#8209;safe</p>
+    </div>
+
+    <div class="lead">
+      This app does nothing on its own &mdash; it adds <b>OpenVPN</b> to the VPN manager
+      already built into <b>Settings&nbsp;&rarr;&nbsp;VPN</b>. Set it up in the webOS VPN app.
+    </div>
+
+    <div class="card">
+      <h2>1 &middot; COPY YOUR PROFILE</h2>
+      <ol>
+        <li>Get an OpenVPN <code>.ovpn</code> from your server (PiVPN: <code>pivpn add</code>).</li>
+        <li>Copy it onto this device via USB drive mode &rarr; lands in
+          <span class="path">/media/internal/</span>. Note the path.</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h2>2 &middot; ADD IT IN SETTINGS &rarr; VPN</h2>
+      <ol>
+        <li><span class="k">Add Profile</span> &rarr; Type <span class="k">OpenVPN</span>.</li>
+        <li><span class="k">Server</span>: your server's IP/host (LAN = its local IP).</li>
+        <li><span class="k">Next</span> &rarr; Auth <b>Certificate (.ovpn)</b>, set the
+          <b>Config file</b> path, and the <b>key passphrase</b> if it has one.</li>
+        <li><span class="k">Save &amp; Connect</span>.</li>
+      </ol>
+    </div>
+
+    <div class="foot">
+      Requires TLS 1.3 Updates for TouchPad, available in the Preware modernize feed.<br>
+      Visit https://docs.webosarchive.org for more information.<br>
+      OpenSSL package &middot; traffic &amp; DNS both tunneled<br>
+      Copyright 2026, webOS Archive
+    </div>
+  </div>
+
+  <!--
+    Plain HTML app: signal the window manager the card is ready, or webOS shows
+    the splash and pulses forever. Frameworks call PalmSystem.stageReady()
+    internally (see the device's enyo/0.10 system.js); a bare page must too.
+  -->
+  <script type="text/javascript">
+    (function () {
+      var done = false;
+      function stageReady() {
+        if (done) return;
+        try {
+          if (window.PalmSystem && typeof PalmSystem.stageReady === "function") {
+            PalmSystem.stageReady(); done = true; return;
+          }
+        } catch (e) {}
+        setTimeout(stageReady, 50);
+      }
+      if (document.readyState === "complete") stageReady();
+      else window.addEventListener("load", stageReady, false);
+      setTimeout(stageReady, 0);
+    })();
+  </script>
+</body>
+</html>

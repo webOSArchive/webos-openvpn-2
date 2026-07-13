@@ -1,0 +1,38 @@
+#!/bin/sh
+#
+# postinst - runs as ROOT via Preware / WebOS Quick Install (ipkg).
+# Installs the OpenVPN VPN-agent into the system VPN agents directory so the
+# stock Settings -> VPN app can drive it.
+#
+# NOTE: palm-install does NOT run this (non-root). Use Preware or WebOS Quick
+# Install. If you side-load with palm-install, run these copies by hand.
+#
+set -e
+
+APP_DIR="/media/cryptofs/apps/usr/palm/applications/org.webosarchive.openvpn"
+SRC="$APP_DIR/agent"
+DEST="/usr/lib/vpn/agents/openvpn"
+
+echo "OpenVPN agent: installing to $DEST ..."
+mkdir -p "$DEST/icons"
+cp "$SRC/libVpnOpenvpnAgent.so"    "$DEST/"
+cp "$SRC/openvpn"                  "$DEST/"
+cp "$SRC/openvpn-up"               "$DEST/"
+cp "$SRC/vpn-plugin-info.json"     "$DEST/"
+cp "$SRC/icons/openvpn-small.png"  "$DEST/icons/" 2>/dev/null || true
+chmod 755 "$DEST/libVpnOpenvpnAgent.so" "$DEST/openvpn" "$DEST/openvpn-up"
+chmod 644 "$DEST/vpn-plugin-info.json"
+
+# Dependency sanity checks (warnings only -- don't fail the install).
+if [ ! -e /usr/lib/ssl11/libssl.so.1.1 ]; then
+    echo "  WARNING: /usr/lib/ssl11 not found -- install the OpenSSL-legacyWebOS"
+    echo "           package, or the bundled openvpn will fail to start."
+fi
+[ -e /dev/net/tun ] || echo "  WARNING: /dev/net/tun missing (reboot usually restores it)."
+
+# Restart the VPN daemon so it re-scans and picks up the new agent.
+/usr/bin/killall PmVpnDaemon 2>/dev/null || true
+
+echo "OpenVPN agent: installed."
+echo "Configure it in Settings -> VPN -> Add Profile -> OpenVPN."
+exit 0

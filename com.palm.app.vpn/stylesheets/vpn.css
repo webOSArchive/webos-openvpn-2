@@ -1,0 +1,234 @@
+/*
+ * Copyright 2008 Palm Inc. Confidential until public release.
+ */
+                   
+/* Override Generic Page Header Icon */
+
+
+.vpn-page-title {
+    padding-left: 10px;
+}
+
+.vpn-row-group {
+    margin-left: 8px;
+    margin-right: 8px;
+}
+
+.vpn-button {
+   margin: 0 8px; 
+}
+
+.vpn-list-selector {
+    margin: 4px 8px;
+}
+
+.configure-profile-default-controls {
+	display: block;
+}
+
+.configure-profile-default-controls.hide {
+	display: none;
+}
+
+.vpnprofile.truncating-text {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.vpnprofile.reconnecting,
+.vpnprofile.disconnecting,
+.vpnprofile.connecting {
+    padding: 8px 0px; /* Copied from framework */
+    padding-top: 4px;
+}
+
+.vpnprofile.connecting,
+.vpnprofile.reconnecting,
+.vpnprofile.disconnecting,
+.vpnprofile.connected {   
+	font-weight: bold;   
+}
+
+.vpnprofile.connected,
+.vpnprofile.disconnected {
+    margin-top: 2px;
+}
+
+.connect-status-text {
+	font-size: 16px;
+	width: 520px;
+	margin: auto auto 0 20px;
+}
+
+.connect-status {
+    margin-top: -10px;
+	font-size: 10px;  
+	font-weight: bold;
+	color: #777;
+	text-transform: uppercase;
+	display: none;
+}
+
+.connect-status.connecting,
+.connect-status.disconnecting,
+.connect-status.reconnecting {
+	display: block;
+}
+
+.checkmark {
+	display: none;
+}
+
+.checkmark.connected {                                                                     
+	display: block;
+    padding-top: 4px;
+}
+
+.info-button {
+    min-width: 0px;
+    margin-left: 8px;
+    margin-top: 8px;
+}
+
+
+.info-icon {
+  	//float: right;
+  	width: 42px;
+  	height: 46px;
+	margin-top: 4px;
+    margin-bottom: 0px;
+    margin-left: 8px;
+	padding: 0;
+  	background: url(../images/info-icon-sprite.png) no-repeat top left;  
+}
+
+.info-icon.selected {background-position: center left;}
+.info-icon.disabled {background-position: bottom left;}
+
+/*
+.select-agent-icon {
+	display: inline-block;
+	float: right;
+	width: 60px;
+    margin: 2px 5px 0 0;
+}
+
+.check-mark-icon {
+	display: none;
+}
+
+.check-mark-icon.true {
+	display: inline-block;
+	float: right;
+}
+
+.vpn-technology {
+    margin-top: -10px;
+	font-size: 10px;  
+	color: #777;
+	text-transform: uppercase;
+	display: block;
+}
+*/
+
+.terms-body-text {
+    white-space: pre-wrap;
+}
+
+.terms-title {
+	 font-weight: bold;
+	 font-size: 14px;
+	 text-align: center;
+	 padding: 10px 0px 10px 0px;
+}
+
+.terms-text {
+	padding-top: 0px;
+	margin: 0px 5px 5px 5px;
+	font-size: 14px;
+}
+
+.terms-box {
+		width: 500px;
+		background: none;
+		margin: 14px auto;
+		padding: 0;
+		border-width: 10px;
+		-webkit-border-image: url(../images/glass-text-field.png) 10 10 10 10 stretch stretch;
+		-webkit-box-sizing: border-box;
+		overflow: hidden;
+}
+
+.terms-box.expanded {
+		margin: 14px auto 48px auto;
+		height: auto;
+}
+
+.terms-box-margin {
+		width: 280px;
+		margin: 10px 0px 0px 5px;
+		padding: 0;
+		color: #000;
+		font-size: 14px;
+}
+
+.terms-expand-icon {
+  width: 32px;
+  height: 32px;
+  background: url(../images/terms-expand-icon.png) top left no-repeat;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+}
+
+.terms-expand-icon:active {
+  background: url(../images/terms-expand-icon.png) bottom left no-repeat;  
+}
+
+/* "Add Profile" list hack - for some reasons the single class is not apended */
+.palm-list div:not(.palm-row) + .palm-row.last.selected {
+	-webkit-border-image: url(../images/selection-gradient-single.png) 24 20 24 20 repeat repeat;
+}
+
+.box-center {
+	width:500px;
+    margin:22px auto 0;
+	/*margin-left: auto;
+	margin-right: auto;*/
+}
+
+.vpn-popup-dialog {
+    width: 320px;
+}
+
+.box {
+	border-radius:12px;
+	overflow:hidden;
+	-webkit-border-image: url(../images/bg_box2.png) 12 repeat;
+	-webkit-box-sizing:border-box;
+	margin:0 0 15px 0;
+	padding:10px 10px 5px;
+	border-width:12px;
+}
+
+.vpn-message {
+	line-height:1.25em;
+	font-size:14px;
+}
+
+.wide-button {
+	width:214px;
+}
+
+.wide-button.right {
+	margin-left:4px;
+}
+
+.wide-button.left {
+	margin-right:4px;
+}
+
+.single-wide-button {
+	width:294px;
+}

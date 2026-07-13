@@ -1,0 +1,91 @@
+#!/bin/sh
+# openvpn-up  -  route/DNS setup for the webOS OpenVPN agent.
+#
+# Analogue of /usr/lib/vpn/agents/vpnc/vpnc-script-palm, but for OpenVPN.
+# OpenVPN invokes --up/--down with the tunnel parameters in the environment:
+#
+#   dev                     tunnel interface (e.g. tun0)         [always]
+#   ifconfig_local          our assigned VPN address             [always]
+#   ifconfig_remote         peer/gateway address (p2p)           [udp/tun]
+#   route_vpn_gateway       gateway for pushed routes
+#   foreign_option_1..N     pushed options, incl. "dhcp-option DNS x.x.x.x"
+#   script_type             up | route-up | down
+#
+# Routing: openvpn itself installs the tun iface + pushed routes (redirect-
+# gateway etc.) via /sbin/ifconfig + /sbin/route, so IP already flows.
+#
+# DNS hand-off (this script): webOS resolves via a local dnsmasq (apps ->
+# 127.0.0.1). dnsmasq forwards to the *upstream* servers in /tmp/resolv.conf
+# (resolv-file in /etc/dnsmasq.palm.conf), which by default are the local
+# network's DNS -> DNS would NOT go through the tunnel (and would leak when
+# roaming). On connect we repoint that upstream at the VPN-pushed DNS (which
+# routes over tun0) and SIGHUP dnsmasq; on disconnect we restore it. Fully
+# reversible; the backup is what makes `down` put your normal DNS back.
+
+STATE_DIR=/tmp/webos-openvpn
+STATE_FILE="$STATE_DIR/state.env"
+DNSMASQ_RESOLV=/tmp/resolv.conf          # dnsmasq's upstream (resolv-file)
+DNS_BACKUP="$STATE_DIR/resolv.conf.saved"
+LOG=/var/log/webos-openvpn-agent.log
+mkdir -p "$STATE_DIR"
+
+log() { echo "$(date '+%Y-%m-%d %H:%M:%S') [openvpn-up] $*" >>"$LOG" 2>/dev/null; }
+
+reload_dnsmasq() {
+    # dnsmasq runs with no-poll, so it must be told to re-read resolv-file.
+    killall -HUP dnsmasq 2>/dev/null && log "SIGHUP dnsmasq (reload upstream DNS)"
+}
+
+# Collect DNS servers pushed via foreign_option_* ("dhcp-option DNS x.x.x.x").
+dns_list=""
+i=1
+while eval "opt=\$foreign_option_$i"; [ -n "$opt" ]; do
+    case "$opt" in
+        *dhcp-option\ DNS\ *) dns_list="$dns_list ${opt##* }" ;;
+    esac
+    i=$((i + 1))
+done
+
+case "$script_type" in
+    up|route-up)
+        log "up: dev=$dev local=$ifconfig_local remote=$ifconfig_remote dns=$dns_list"
+        {
+            echo "TUNDEV=$dev"
+            echo "INTERNAL_IP4_ADDRESS=$ifconfig_local"
+            echo "VPNGATEWAY=${route_vpn_gateway:-$ifconfig_remote}"
+            echo "INTERNAL_IP4_DNS=$dns_list"
+        } >"$STATE_FILE"
+
+        # --- DNS hand-off: send lookups through the tunnel ---
+        if [ -n "$dns_list" ]; then
+            # Back up the real upstream ONCE (up-restart may re-run us).
+            if [ ! -f "$DNS_BACKUP" ] && [ -f "$DNSMASQ_RESOLV" ]; then
+                cp "$DNSMASQ_RESOLV" "$DNS_BACKUP"
+            fi
+            {
+                echo "# webOS OpenVPN agent: upstream DNS via VPN tunnel ($dev)"
+                for ns in $dns_list; do echo "nameserver $ns"; done
+            } >"$DNSMASQ_RESOLV"
+            log "DNS upstream -> [$dns_list ] via tunnel"
+            reload_dnsmasq
+        else
+            log "no pushed DNS; leaving system resolver as-is"
+        fi
+        ;;
+    down)
+        log "down: dev=$dev"
+        rm -f "$STATE_FILE"
+        # --- restore the pre-VPN DNS upstream ---
+        if [ -f "$DNS_BACKUP" ]; then
+            cp "$DNS_BACKUP" "$DNSMASQ_RESOLV"
+            rm -f "$DNS_BACKUP"
+            log "DNS upstream restored from backup"
+            reload_dnsmasq
+        fi
+        ;;
+    *)
+        log "unknown script_type='$script_type'"
+        ;;
+esac
+
+exit 0

@@ -1,0 +1,20 @@
+# OpenVPN cross-build tree (regenerable; ~large). See agent-openvpn/BUILD.md.
+build-openvpn/openvpn-2.5.9/
+build-openvpn/*.tar.gz
+
+# Device libs pulled into the sysroot (regenerable via scripts/get-palm-libcjson.sh
+# and novacom get). Headers (json.h, glib_shim.h) ARE tracked.
+agent-openvpn/sysroot/usr/lib/
+
+# Built .ipk output
+packaging/dist/
+
+# Agent payload synced into the package by build-ipk.sh (regenerable from
+# agent-openvpn/). The icon under agent/icons/ IS tracked.
+packaging/org.webosarchive.openvpn/agent/libVpnOpenvpnAgent.so
+packaging/org.webosarchive.openvpn/agent/openvpn
+packaging/org.webosarchive.openvpn/agent/openvpn-up
+packaging/org.webosarchive.openvpn/agent/vpn-plugin-info.json
+
+# macOS cruft
+.DS_Store

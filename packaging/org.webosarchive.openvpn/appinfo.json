@@ -1,0 +1,13 @@
+{
+  "id": "org.webosarchive.openvpn",
+  "version": "2.5.9",
+  "vendor": "webOS Archive",
+  "type": "web",
+  "main": "index.html",
+  "title": "OpenVPN 2",
+  "icon": "icon.png",
+  "miniicon": "miniicon.png",
+  "splashicon": "splashicon.png",
+  "uiRevision": 2,
+  "noWindow": false
+}

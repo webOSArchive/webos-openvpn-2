@@ -1,0 +1,9 @@
+{
+  "title": "OpenVPN",
+  "id": "org.webosarchive.openvpn",
+  "version": "1.0.0",
+  "vendor": "webOS Archive community",
+  "type": ["ssl"],
+  "plugin": "libVpnOpenvpnAgent.so",
+  "icon": "icons/openvpn-small.png"
+}

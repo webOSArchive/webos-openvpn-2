@@ -1,0 +1,18 @@
+#!/bin/sh
+#
+# prerm - runs as ROOT before the package is removed. Tears down the agent.
+#
+DEST="/usr/lib/vpn/agents/openvpn"
+
+echo "OpenVPN agent: removing ..."
+
+# Stop any running tunnel + the daemon so the .so isn't in use.
+/usr/bin/killall openvpn      2>/dev/null || true
+/usr/bin/killall PmVpnDaemon  2>/dev/null || true
+
+rm -rf "$DEST"
+rm -rf /tmp/webos-openvpn       # transient state only
+
+# Leaves user data (your .ovpn files in /media/internal) untouched.
+echo "OpenVPN agent: removed."
+exit 0

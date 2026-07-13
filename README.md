@@ -112,6 +112,7 @@ hand-off — it's all in [`agent-openvpn/BUILD.md`](agent-openvpn/BUILD.md).
 | `com.palm.app.vpn/` | The stock webOS VPN front-end (pulled off the device) — the rendering contract the agent targets. |
 | `reversing/` | The stock `libVpncAgent.so` / `PmVpnDaemon` + disassembly used to recover the ABI. |
 | `setup-webos-easyvpn-deprecated.sh` | The **older** IKEv1/EasyVPN server installer (see below). |
+| `uninstall-webos-easyvpn.sh` | Fully removes that EasyVPN/strongSwan server (safe alongside PiVPN). |
 
 ### Build it yourself
 
@@ -161,6 +162,10 @@ strongSwan server for it, and it works — but it uses deliberately weak legacy 
 group secret is remotely crackable from just your public IP. **Prefer the OpenVPN agent.**
 The old path is kept for completeness and for devices where the OpenSSL-legacyWebOS
 package isn't an option.
+
+Already ran the old installer and want it gone? `sudo ./uninstall-webos-easyvpn.sh`
+purges strongSwan and undoes its firewall/sysctl changes — and leaves a PiVPN server
+on the same box untouched. (Then remove the UDP 500/4500 port-forward on your router.)
 
 ---
 
